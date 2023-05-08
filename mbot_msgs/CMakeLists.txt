@@ -47,8 +47,15 @@ lcm_wrap_types(
   lcmtypes/particle_t.lcm
 )
 
-lcm_add_library(mbot_lcm_msgs C ${c_sources} ${c_headers})
+add_custom_target(serial_lcmtypes 
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes
+    DEPENDS ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes/*.lcm
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMAND_EXPAND_LISTS
+)
 
+lcm_add_library(mbot_lcm_msgs C ${c_sources} ${c_headers})
+add_dependencies(mbot_lcm_msgs serial_lcmtypes)
 include(GenerateExportHeader)
 generate_export_header(mbot_lcm_msgs)
 target_include_directories(mbot_lcm_msgs INTERFACE
@@ -62,6 +69,8 @@ target_include_directories(mbot_lcm_msgs-cpp INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 
+
+
 if(JAVA_FOUND)
   add_jar(mbot_lcm_msgs-jar
     OUTPUT_NAME mbot_lcm_msgs
@@ -73,6 +82,7 @@ endif()
 # INSTALL C and C++ headers.
 
 lcm_install_headers(DESTINATION include
+  ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
   ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_export.h
   ${c_headers}
   ${cpp_headers}
