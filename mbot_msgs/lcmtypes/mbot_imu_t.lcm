@@ -6,7 +6,7 @@ struct mbot_imu_t
     float gyro[3];
     float accel[3];
     float mag[3];
-    float angles_rpy[3];
-    float angles_quat[4];
+    float angles_rpy[3]; // roll (x), pitch (y), yaw, (z)
+    float angles_quat[4]; // quaternion
     float temp;
 }
