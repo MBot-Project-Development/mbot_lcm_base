@@ -68,7 +68,7 @@ def generate_c_struct(package_name, struct_name, fields, max_string_length=256):
             c_struct += f' {comment}'
         c_struct += '\n'
 
-    c_struct += f'}} serial_{struct_name}_t;\n\n'
+    c_struct += f'}} serial_{struct_name};\n\n'
 
     # Add function prototypes for serialize and deserialize functions
     c_struct += generate_serialize_deserialize_functions(struct_name)
@@ -87,20 +87,20 @@ def generate_serialize_deserialize_functions(struct_name):
     """
 
     # Generate deserialize function prototype
-    deserialize_proto = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}_t* dest);'
+    deserialize_proto = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest);'
 
     # Generate serialize function prototype
-    serialize_proto = f'int {struct_name}_serialize(serial_{struct_name}_t* src, uint8_t* dest);'
+    serialize_proto = f'int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest);'
 
     # Generate deserialize function
-    deserialize = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}_t* dest) {{\n'
-    deserialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}_t));\n'
+    deserialize = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest) {{\n'
+    deserialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}));\n'
     deserialize += f'    return 1;\n'
     deserialize += f'}}\n\n'
 
     # Generate serialize function
-    serialize = f'int {struct_name}_serialize(serial_{struct_name}_t* src, uint8_t* dest) {{\n'
-    serialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}_t));\n'
+    serialize = f'int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest) {{\n'
+    serialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}));\n'
     serialize += f'    return 1;\n'
     serialize += f'}}\n'
 

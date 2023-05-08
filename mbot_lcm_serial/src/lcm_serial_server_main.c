@@ -14,12 +14,14 @@
 #include <mbot_lcm_msgs_pose2D_t.h>
 #include <mbot_lcm_msgs_mbot_imu_t.h>
 #include <mbot_lcm_msgs_mbot_encoders_t.h>
+#include <mbot_lcm_msgs_mbot_motor_vel_t.h>
+#include <mbot_lcm_msgs_mbot_motor_pwm_t.h>
 #include <mbot_lcm_msgs_twist2D_t.h>
 #include <mbot_lcm_msgs_timestamp_t.h>
 
 #include <mbot_lcm_serial/protocol.h>
 #include <mbot_lcm_serial/topic_data.h>
-#include <mbot_lcm_serial/messages_mb.h>
+#include <mbot_lcm_serial/mbot_lcm_msgs_serial.h>
 #include <mbot_lcm_serial/comms_common.h>
 #include <mbot_lcm_serial/listener.h>
 
@@ -29,191 +31,32 @@ bool running = true;
 
 lcm_t* lcmInstance;
 
-#define ROBOT_TYPE_OMNI
-
-
-
-#ifdef ROBOT_TYPE_OMNI
-#define MTR_CMD_CHANNEL         OMNI_MOTOR_COMMAND
-#define MTR_CMD_TYPE_LCM        mbot_lcm_msgs_omni_motor_command_t
-#define MTR_CMD_TYPE_SER        serial_mbot_omni_motor_command_t
-#define MTR_CMD_SER_FN          mbot_omni_motor_command_t_serialize
-#define MTR_CMD_DSR_FN          mbot_omni_motor_command_t_deserialize
-#define MTR_CMD_LCM_SUB_FN      mbot_lcm_msgs_twist2D_t_subscribe
-
-#define ENCODER_SER_CHANNEL     OMNI_ENCODERS
-#define RST_ENC_SER_CHANNEL     RESET_ENCODERS
-#define ENCODER_SER_TYPE        serial_omni_encoder_t
-#define ENCODER_SER_FN          omni_encoder_t_serialize
-#define ENCODER_DSR_FN          omni_encoder_t_deserialize
-#define RST_ENC_LCM_SUB_FN      mbot_lcm_msgs_mbot_encoders_t_subscribe
-
-static void motor_cmds_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
+static void mbot_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
                                    const mbot_lcm_msgs_twist2D_t* msg, void* _user)
 {
-    // printf("got motor commands!\r\n");
-    MTR_CMD_TYPE_SER to_send = {0};
+    mbot_lcm_msgs_twist2D_t to_send;
     to_send.utime = msg->utime;
     to_send.vx = msg->vx;
     to_send.vy = msg->vy;
     to_send.wz = msg->wz;
-    comms_set_topic_data(MBOT_MOTOR_COMMAND, &to_send, sizeof(MTR_CMD_TYPE_SER));
-    comms_write_topic(MBOT_MOTOR_COMMAND, &to_send);
-    // printf("sent motor commands!\r\n");
-}
-
-void serial_encoders_cb(serial_omni_encoder_t* data)
-{
-    mbot_lcm_msgs_mbot_encoders_t to_send = {0};
-    to_send.utime = data->utime;
-    to_send.ticks[0] = data->aticks;
-    to_send.ticks[1] = data->bticks;
-    to_send.ticks[2] = data->cticks;
-
-    to_send.delta_ticks[0] = data->a_delta;
-    to_send.delta_ticks[1] = data->b_delta;
-    to_send.delta_ticks[2] = data->c_delta;
-
-    mbot_lcm_msgs_mbot_encoders_t_publish(lcmInstance, "OMNI_ENCODERS", &to_send);
+    comms_set_topic_data(MBOT_VEL_CMD, &to_send, sizeof(serial_twist2D_t));
+    comms_write_topic(MBOT_VEL_CMD, &to_send);
 }
 
 static void reset_encoders_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
                                        const mbot_lcm_msgs_mbot_encoders_t* msg, void* _user)
 {
-    // printf("got reset encoders!\r\n");
-    serial_omni_encoder_t to_send = {0};
+    serial_mbot_encoders_t to_send = {0};
     to_send.utime = msg->utime;
-    // TODO: fix.
-    to_send.aticks = msg->ticks[0];
-    to_send.bticks = msg->ticks[1];
-    to_send.cticks = msg->ticks[2];
-    to_send.a_delta = msg->delta_ticks[0];
-    to_send.b_delta = msg->delta_ticks[1];
-    to_send.c_delta = msg->delta_ticks[2];
-    comms_set_topic_data(RESET_ENCODERS, &to_send, sizeof(serial_omni_encoder_t));
-    comms_write_topic(RESET_ENCODERS, &to_send);
-    // printf("sent reset encoders!\r\n");
-}
-
-#else
-
-#define MTR_CMD_CHANNEL         MBOT_MOTOR_COMMAND
-#define MTR_CMD_TYPE_LCM        mbot_lcm_msgs_twist2D_t
-#define MTR_CMD_TYPE_SER        serial_mbot_motor_command_t
-#define MTR_CMD_SER_FN          mbot_motor_command_t_serialize
-#define MTR_CMD_DSR_FN          mbot_motor_command_t_deserialize
-#define MTR_CMD_LCM_SUB_FN      mbot_motor_command_t_subscribe
-#define RST_ENC_LCM_SUB_FN      mbot_lcm_msgs_mbot_encoders_t_subscribe
-
-#define ENCODER_SER_CHANNEL     MBOT_ENCODERS
-#define RST_ENC_SER_CHANNEL     RESET_ENCODERS
-#define ENCODER_SER_TYPE        serial_mbot_encoder_t
-#define ENCODER_SER_FN          mbot_encoder_t_serialize
-#define ENCODER_DSR_FN          mbot_encoder_t_deserialize
-#define RST_ENC_LCM_SUB_FN      mbot_lcm_msgs_mbot_encoders_t_subscribe
-
-static void motor_cmds_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
-                        const MTR_CMD_TYPE_LCM* msg, void* _user)
-{
-    // printf("got motor commands!\r\n");
-    MTR_CMD_TYPE_SER to_send = {0};
-    to_send.utime = msg->utime;
-    to_send.trans_v = msg->trans_v;
-    to_send.angular_v = msg->angular_v;
-    comms_set_topic_data(MBOT_MOTOR_COMMAND, &to_send, sizeof(MTR_CMD_TYPE_SER));
-    comms_write_topic(MBOT_MOTOR_COMMAND, &to_send);
-    // printf("sent motor commands!\r\n");
-}
-
-void serial_encoders_cb(serial_mbot_encoder_t* data)
-{
-    mbot_lcm_msgs_mbot_encoder_t to_send = {0};
-    to_send.left_delta = data->left_delta;
-    to_send.leftticks = data->leftticks;
-    to_send.right_delta = data->right_delta;
-    to_send.rightticks = data->rightticks;
-    to_send.utime = data->utime;
-    mbot_lcm_msgs_mbot_encoder_t_publish(lcmInstance, "MBOT_ENCODERS", &to_send);
-}
-
-static void reset_encoders_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
-                        const mbot_lcm_msgs_mbot_encoder_t* msg, void* _user)
-{
-    printf("got reset encoders!\r\n");
-    serial_mbot_encoder_t to_send = {0};
-    to_send.utime = msg->utime;
-    to_send.leftticks = msg->leftticks;
-    to_send.rightticks = msg->rightticks;
-    comms_set_topic_data(RESET_ENCODERS, &to_send, sizeof(serial_mbot_encoder_t));
-    comms_write_topic(RESET_ENCODERS, &to_send);
-    printf("sent reset encoders!\r\n");
-}
-
-#endif
-
-void signal_callback_handler(int signum)
-{
-    printf("Caught exit signal - exiting!\r\n");
-    running = false;
-    listener_running = false;
-}
-
-void serial_odometry_cb(serial_odometry_t* data)
-{
-    mbot_lcm_msgs_pose2D_t to_send = {0};
-    to_send.utime = data->utime;
-    to_send.theta = data->theta;
-    to_send.x = data->x;
-    to_send.y = data->y;
-    mbot_lcm_msgs_pose2D_t_publish(lcmInstance, "ODOMETRY", &to_send);
-}
-
-void serial_imu_cb(serial_mbot_imu_t* data)
-{
-    mbot_lcm_msgs_mbot_imu_t to_send = {0};
-    to_send.utime = data->utime;
-    to_send.accel[0] = data->accel[0];
-    to_send.accel[1] = data->accel[1];
-    to_send.accel[2] = data->accel[2];
-    to_send.gyro[0] = data->gyro[0];
-    to_send.gyro[1] = data->gyro[1];
-    to_send.gyro[2] = data->gyro[2];
-    to_send.mag[0] = data->mag[0];
-    to_send.mag[1] = data->mag[1];
-    to_send.mag[2] = data->mag[2];
-    to_send.angles_rpy[0] = data->tb[0];
-    to_send.angles_rpy[1] = data->tb[1];
-    to_send.angles_rpy[2] = data->tb[2];
-    to_send.temp = data->temperature;
-    mbot_lcm_msgs_mbot_imu_t_publish(lcmInstance, "MBOT_IMU", &to_send);
-}
-
-void register_topics()
-{
-    // timesync topic
-    comms_register_topic(MBOT_TIMESYNC, sizeof(serial_timestamp_t), (Deserialize)&timestamp_t_deserialize, (Serialize)&timestamp_t_serialize, NULL);
-    // odometry topic
-    comms_register_topic(ODOMETRY, sizeof(serial_odometry_t), (Deserialize)&odometry_t_deserialize, (Serialize)&odometry_t_serialize, (MsgCb)serial_odometry_cb);
-    // odometry topic
-    comms_register_topic(RESET_ODOMETRY, sizeof(serial_odometry_t), (Deserialize)&odometry_t_deserialize, (Serialize)&odometry_t_serialize, NULL);
-    // IMU topic
-    comms_register_topic(MBOT_IMU, sizeof(serial_mbot_imu_t), (Deserialize)&mbot_imu_t_deserialize, (Serialize)&mbot_imu_t_serialize, (MsgCb)serial_imu_cb);
-    // encoders topic
-    comms_register_topic(ENCODER_SER_CHANNEL, sizeof(ENCODER_SER_TYPE), (Deserialize)&ENCODER_DSR_FN, (Serialize)&ENCODER_SER_FN, (MsgCb)serial_encoders_cb);
-    // reset encoders topic
-    comms_register_topic(RST_ENC_SER_CHANNEL, sizeof(ENCODER_SER_TYPE), (Deserialize)&ENCODER_DSR_FN, (Serialize)&ENCODER_SER_FN, NULL);
-    // motor commands topic (note the #define's to switch between omni and diff drive)
-    comms_register_topic(MTR_CMD_CHANNEL, sizeof(MTR_CMD_TYPE_SER), (Deserialize)&MTR_CMD_DSR_FN, (Serialize)&MTR_CMD_SER_FN, NULL);
-}
-
-void* handle_lcm(void* data)
-{
-    lcm_t* lcmInstance = data;
-    while(running)
-    {
-        lcm_handle_timeout(lcmInstance, 100);
-    }
-    return NULL;
+    to_send.ticks[0] = msg->ticks[0];
+    to_send.ticks[1] = msg->ticks[1];
+    to_send.ticks[2] = msg->ticks[2];
+    to_send.delta_ticks[0] = msg->delta_ticks[0];
+    to_send.delta_ticks[1] = msg->delta_ticks[1];
+    to_send.delta_ticks[2] = msg->delta_ticks[2];
+    to_send.delta_time = msg->delta_time;
+    comms_set_topic_data(MBOT_ENCODERS_RESET, &to_send, sizeof(serial_mbot_encoders_t));
+    comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
 }
 
 static void timestamp_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -230,20 +73,147 @@ static void timestamp_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channe
 static void reset_odom_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
                                    const mbot_lcm_msgs_pose2D_t* msg, void* _user)
 {
-    serial_odometry_t to_send = {0};
+    serial_pose2D_t to_send = {0};
     to_send.theta = msg->theta;
     to_send.x = msg->x;
     to_send.y = msg->y;
-    comms_set_topic_data(RESET_ODOMETRY, &to_send, sizeof(serial_odometry_t));
-    comms_write_topic(RESET_ODOMETRY, &to_send);
+    comms_set_topic_data(MBOT_ODOMETRY_RESET, &to_send, sizeof(serial_pose2D_t));
+    comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+}
+
+static void mbot_motor_pwm_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
+                                   const mbot_lcm_msgs_mbot_motor_pwm_t* msg, void* _user)
+{
+    serial_mbot_motor_pwm_t to_send = {0};
+    to_send.utime = msg->utime;
+    to_send.pwm[0] = msg->pwm[0];
+    to_send.pwm[1] = msg->pwm[1];
+    to_send.pwm[2] = msg->pwm[2];
+    comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_pwm_t));
+    comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+}
+
+static void mbot_motor_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
+                                   const mbot_lcm_msgs_mbot_motor_vel_t* msg, void* _user)
+{
+    serial_mbot_motor_vel_t to_send = {0};
+    to_send.utime = msg->utime;
+    to_send.velocity[0] = msg->velocity[0];
+    to_send.velocity[1] = msg->velocity[1];
+    to_send.velocity[2] = msg->velocity[2];
+    comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_vel_t));
+    comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+}
+
+void signal_callback_handler(int signum)
+{
+    printf("Caught exit signal - exiting!\r\n");
+    running = false;
+    listener_running = false;
+}
+
+void serial_encoders_cb(serial_mbot_encoders_t* msg)
+{
+    mbot_lcm_msgs_mbot_encoders_t to_send = {0};
+    to_send.utime = msg->utime;
+    to_send.ticks[0] = msg->ticks[0];
+    to_send.ticks[1] = msg->ticks[1];
+    to_send.ticks[2] = msg->ticks[2];
+    to_send.delta_ticks[0] = msg->delta_ticks[0];
+    to_send.delta_ticks[1] = msg->delta_ticks[1];
+    to_send.delta_ticks[2] = msg->delta_ticks[2];
+    to_send.delta_time = msg->delta_time;
+    mbot_lcm_msgs_mbot_encoders_t_publish(lcmInstance, MBOT_ENCODERS_CHANNEL, &to_send);
+}
+
+void serial_motor_vel_cb(serial_mbot_motor_vel_t* data)
+{
+    mbot_lcm_msgs_mbot_motor_vel_t to_send = {0};
+    to_send.utime = data->utime;
+    to_send.velocity[0] = data->velocity[0];
+    to_send.velocity[1] = data->velocity[1];
+    to_send.velocity[2] = data->velocity[2];
+    mbot_lcm_msgs_mbot_motor_vel_t_publish(lcmInstance, MBOT_MOTOR_VEL_CHANNEL, &to_send);
+}
+
+void serial_odometry_cb(serial_pose2D_t* data)
+{
+    mbot_lcm_msgs_pose2D_t to_send = {0};
+    to_send.utime = data->utime;
+    to_send.theta = data->theta;
+    to_send.x = data->x;
+    to_send.y = data->y;
+    mbot_lcm_msgs_pose2D_t_publish(lcmInstance, MBOT_ODOMETRY_CHANNEL, &to_send);
+}
+
+void serial_imu_cb(serial_mbot_imu_t* data)
+{
+    mbot_lcm_msgs_mbot_imu_t to_send = {0};
+    to_send.utime = data->utime;
+    to_send.accel[0] = data->accel[0];
+    to_send.accel[1] = data->accel[1];
+    to_send.accel[2] = data->accel[2];
+    to_send.gyro[0] = data->gyro[0];
+    to_send.gyro[1] = data->gyro[1];
+    to_send.gyro[2] = data->gyro[2];
+    to_send.mag[0] = data->mag[0];
+    to_send.mag[1] = data->mag[1];
+    to_send.mag[2] = data->mag[2];
+    to_send.angles_rpy[0] = data->angles_rpy[0];
+    to_send.angles_rpy[1] = data->angles_rpy[1];
+    to_send.angles_rpy[2] = data->angles_rpy[2];
+    to_send.angles_quat[0] = data->angles_quat[0];
+    to_send.angles_quat[1] = data->angles_quat[1];
+    to_send.angles_quat[2] = data->angles_quat[2];
+    to_send.angles_quat[3] = data->angles_quat[3];
+    to_send.temp = data->temp;
+    mbot_lcm_msgs_mbot_imu_t_publish(lcmInstance, MBOT_IMU_CHANNEL, &to_send);
+}
+
+/*
+* Each topic that gets sent to the pico needs to be registered here
+* It must know the LCM channel, size of the serial message, serialize & deserialize functions
+* and if it originates on the pico, there must be a callback function to copy and publish the LCM message
+*/
+void register_topics()
+{
+    // timesync topic
+    comms_register_topic(MBOT_TIMESYNC, sizeof(serial_timestamp_t), (Deserialize)&timestamp_t_deserialize, (Serialize)&timestamp_t_serialize, NULL);
+    // odometry topic
+    comms_register_topic(MBOT_ODOMETRY, sizeof(serial_pose2D_t), (Deserialize)&pose2D_t_deserialize, (Serialize)&pose2D_t_serialize, (MsgCb)serial_odometry_cb);
+    // odometry topic
+    comms_register_topic(MBOT_ODOMETRY_RESET,  sizeof(serial_pose2D_t), (Deserialize)&pose2D_t_deserialize, (Serialize)&pose2D_t_serialize, NULL);
+    // IMU topic
+    comms_register_topic(MBOT_IMU, sizeof(serial_mbot_imu_t), (Deserialize)&mbot_imu_t_deserialize, (Serialize)&mbot_imu_t_serialize, (MsgCb)serial_imu_cb);
+    // encoders topic
+    comms_register_topic(MBOT_ENCODERS, sizeof(serial_mbot_encoders_t), (Deserialize)&mbot_encoders_t_deserialize, (Serialize)&mbot_encoders_t_serialize, (MsgCb)serial_encoders_cb);
+    // reset encoders topic
+    comms_register_topic(MBOT_ENCODERS_RESET, sizeof(serial_mbot_encoders_t), (Deserialize)&mbot_encoders_t_deserialize, (Serialize)&mbot_encoders_t_serialize, NULL);
+    // motor commands topic
+    comms_register_topic(MBOT_MOTOR_PWM_CMD, sizeof(serial_mbot_motor_pwm_t), (Deserialize)&mbot_motor_pwm_t_deserialize, (Serialize)&mbot_motor_pwm_t_serialize, NULL);
+    comms_register_topic(MBOT_MOTOR_VEL_CMD, sizeof(serial_mbot_motor_vel_t), (Deserialize)&mbot_motor_vel_t_deserialize, (Serialize)&mbot_motor_vel_t_serialize, NULL);
+    comms_register_topic(MBOT_MOTOR_VEL, sizeof(serial_mbot_motor_vel_t), (Deserialize)&mbot_motor_vel_t_deserialize, (Serialize)&mbot_motor_vel_t_serialize, (MsgCb)serial_motor_vel_cb);
+    comms_register_topic(MBOT_VEL_CMD, sizeof(serial_twist2D_t), (Deserialize)&twist2D_t_deserialize, (Serialize)&twist2D_t_serialize, NULL);
+}
+
+void* handle_lcm(void* data)
+{
+    lcm_t* lcmInstance = data;
+    while(running)
+    {
+        lcm_handle_timeout(lcmInstance, 100);
+    }
+    return NULL;
 }
 
 void subscribe_lcm(lcm_t* lcm)
 {
-    mbot_lcm_msgs_timestamp_t_subscribe(lcm, "MBOT_TIMESYNC", &timestamp_lcm_handler, NULL);
-    mbot_lcm_msgs_pose2D_t_subscribe(lcm, "RESET_ODOMETRY", &reset_odom_lcm_handler, NULL);
-    RST_ENC_LCM_SUB_FN(lcm, "RESET_ENCODERS", &reset_encoders_lcm_handler, NULL);
-    MTR_CMD_LCM_SUB_FN(lcm, "MBOT_MOTOR_COMMAND", &motor_cmds_lcm_handler, NULL);
+    mbot_lcm_msgs_timestamp_t_subscribe(lcm, MBOT_TIMESYNC_CHANNEL, &timestamp_lcm_handler, NULL);
+    mbot_lcm_msgs_pose2D_t_subscribe(lcm, MBOT_ODOMETRY_RESET_CHANNEL, &reset_odom_lcm_handler, NULL);
+    mbot_lcm_msgs_mbot_encoders_t_subscribe(lcm, MBOT_ENCODERS_RESET_CHANNEL, &reset_encoders_lcm_handler, NULL);
+    mbot_lcm_msgs_mbot_motor_pwm_t_subscribe(lcm, MBOT_MOTOR_PWM_CMD_CHANNEL, &mbot_motor_pwm_cmd_lcm_handler, NULL);
+    mbot_lcm_msgs_mbot_motor_vel_t_subscribe(lcm, MBOT_MOTOR_VEL_CMD_CHANNEL, &mbot_motor_vel_cmd_lcm_handler, NULL);
+    mbot_lcm_msgs_twist2D_t_subscribe(lcm, MBOT_VEL_CMD_CHANNEL, &mbot_vel_cmd_lcm_handler, NULL);
 }
 
 int main(int argc, char** argv)
