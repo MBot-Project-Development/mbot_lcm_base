@@ -19,9 +19,10 @@
 #include <mbot_lcm_msgs_twist2D_t.h>
 #include <mbot_lcm_msgs_timestamp_t.h>
 
+#include <mbot_lcm_msgs_serial.h>
+
 #include <mbot_lcm_serial/protocol.h>
 #include <mbot_lcm_serial/topic_data.h>
-#include <mbot_lcm_serial/mbot_lcm_msgs_serial.h>
 #include <mbot_lcm_serial/comms_common.h>
 #include <mbot_lcm_serial/listener.h>
 
