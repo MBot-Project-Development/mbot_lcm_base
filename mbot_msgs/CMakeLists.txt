@@ -54,6 +54,9 @@ add_custom_target(serial_lcmtypes
     COMMAND_EXPAND_LISTS
 )
 
+list(APPEND c_sources ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c)
+list(APPEND c_headers ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h)
+
 lcm_add_library(mbot_lcm_msgs C ${c_sources} ${c_headers})
 add_dependencies(mbot_lcm_msgs serial_lcmtypes)
 include(GenerateExportHeader)
@@ -69,8 +72,6 @@ target_include_directories(mbot_lcm_msgs-cpp INTERFACE
   $<INSTALL_INTERFACE:include>
 )
 
-
-
 if(JAVA_FOUND)
   add_jar(mbot_lcm_msgs-jar
     OUTPUT_NAME mbot_lcm_msgs
@@ -82,7 +83,6 @@ endif()
 # INSTALL C and C++ headers.
 
 lcm_install_headers(DESTINATION include
-  ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
   ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_export.h
   ${c_headers}
   ${cpp_headers}
