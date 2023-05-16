@@ -47,18 +47,21 @@ lcm_wrap_types(
   lcmtypes/particle_t.lcm
 )
 
-add_custom_target(serial_lcmtypes 
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
     COMMAND python3 ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes
     DEPENDS ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes/*.lcm
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    COMMAND_EXPAND_LISTS
+    COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c/.h"
 )
+
+message(STATUS "Generating serial lcmtypes")
 
 list(APPEND c_sources ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c)
 list(APPEND c_headers ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h)
 
 lcm_add_library(mbot_lcm_msgs C ${c_sources} ${c_headers})
-add_dependencies(mbot_lcm_msgs serial_lcmtypes)
+#add_dependencies(mbot_lcm_msgs serial_lcmtypes)
 include(GenerateExportHeader)
 generate_export_header(mbot_lcm_msgs)
 target_include_directories(mbot_lcm_msgs INTERFACE
