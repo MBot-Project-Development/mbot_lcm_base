@@ -27,6 +27,8 @@
 #include <mbot_lcm_serial/comms_common.h>
 #include <mbot_lcm_serial/listener.h>
 
+#define MBOT_LCM_SERIAL_PORT "/dev/mbot_lcm"
+
 struct termios options;
 
 bool running = true;
@@ -251,6 +253,27 @@ void subscribe_lcm(lcm_t* lcm)
     mbot_lcm_msgs_twist2D_t_subscribe(lcm, MBOT_VEL_CMD_CHANNEL, &mbot_vel_cmd_lcm_handler, NULL);
 }
 
+int configure_serial(int ser_dev){
+    tcgetattr(ser_dev, &options);
+    cfsetspeed(&options, B115200);
+    options.c_cflag &= ~(CSIZE | PARENB | CSTOPB | CRTSCTS);
+    options.c_cflag |= CS8 | CREAD | CLOCAL;
+    options.c_oflag &= ~OPOST;
+    options.c_lflag &= ~(ICANON | ISIG | ECHO | IEXTEN); /* Set non-canonical mode */
+    options.c_cc[VTIME] = 1;
+    options.c_cc[VMIN] = 0;
+    cfmakeraw(&options);
+    tcflush(ser_dev, TCIFLUSH);
+    tcsetattr(ser_dev, TCSANOW, &options);
+    if(tcgetattr(ser_dev, &options) != 0)
+    {
+        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+        return -1;
+    }
+    return 0;
+
+}
+
 int main(int argc, char** argv)
 {
     printf("Starting the serial/lcm shim...\r\n");
@@ -271,46 +294,42 @@ int main(int argc, char** argv)
     printf("Subscribing to lcm...\r\n");
     subscribe_lcm(lcmInstance);
 
-    printf("Init Serial....\r\n");
-    int ser_dev = open("/dev/mbot_lcm", O_RDWR);
-    tcgetattr(ser_dev, &options);
-    cfsetspeed(&options, B115200);
-    options.c_cflag &= ~(CSIZE | PARENB | CSTOPB | CRTSCTS);
-    options.c_cflag |= CS8 | CREAD | CLOCAL;
-    options.c_oflag &= ~OPOST;
-    options.c_lflag &= ~(ICANON | ISIG | ECHO | IEXTEN); /* Set non-canonical mode */
-    options.c_cc[VTIME] = 1;
-    options.c_cc[VMIN] = 0;
-    cfmakeraw(&options);
-    tcflush(ser_dev, TCIFLUSH);
-    tcsetattr(ser_dev, TCSANOW, &options);
-    if (ser_dev < 0)
-    {
-        printf("Error %i from open: %s\n", errno, strerror(errno));
-        running = false;
-    }
-    if(tcgetattr(ser_dev, &options) != 0)
-    {
-        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
-        running = false;
-    }
-    comms_init_protocol(&ser_dev);
-    comms_init_topic_data();
-    register_topics();
-
-    printf("Starting the serial thread...\r\n");
+    int ser_dev = -1;
     pthread_t serialThread;
-    pthread_create(&serialThread, NULL, comms_listener_loop, NULL);
 
-    printf("running!\r\n");
+    while(running){
+        while(ser_dev < 0){
+            ser_dev = open(MBOT_LCM_SERIAL_PORT, O_RDWR);
+            if(ser_dev < 0){
+                printf("Error %i from open: %s\n", errno, strerror(errno));
+                sleep(1);
+            }
+        }
+
+        if(configure_serial(ser_dev) != 0){
+            close(ser_dev);
+            ser_dev = -1;
+            continue;
+        }
+
+        comms_init_protocol(&ser_dev);
+        comms_init_topic_data();
+        register_topics();
+
+        printf("Starting the serial thread...\r\n");
+        pthread_create(&serialThread, NULL, comms_listener_loop, NULL);
+
+        printf("running!\r\n");
+        pthread_join(serialThread, NULL);
+        printf("stopped the serial thread...\r\n");
+        close(ser_dev);
+        printf("closed the serial port...\r\n");
+        ser_dev = -1;
+    }
+
+    printf("stopped the lcm thread...\r\n");
     pthread_join(lcmThread, NULL);
     pthread_join(timesyncThread, NULL);
-    printf("stopped the lcm thread...\r\n");
-    pthread_cancel(serialThread);
-    pthread_join(serialThread, NULL);
-    printf("stopped the serial thread...\r\n");
-    close(ser_dev);
-    printf("closed the serial port...\r\n");
     printf("exiting!\r\n");
     return 0;
 }
