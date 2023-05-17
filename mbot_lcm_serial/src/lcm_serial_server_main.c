@@ -8,6 +8,7 @@
 #include <termios.h> // Contains POSIX terminal control definitions
 #include <unistd.h> // write(), read(), close()
 #include <lcm/lcm.h>
+#include <sys/time.h>
 
 #include <mbot_lcm_serial/lcm_config.h>
 
@@ -137,6 +138,16 @@ void serial_motor_vel_cb(serial_mbot_motor_vel_t* data)
     mbot_lcm_msgs_mbot_motor_vel_t_publish(lcmInstance, MBOT_MOTOR_VEL_CHANNEL, &to_send);
 }
 
+void serial_motor_pwm_cb(serial_mbot_motor_pwm_t* data)
+{
+    mbot_lcm_msgs_mbot_motor_pwm_t to_send = {0};
+    to_send.utime = data->utime;
+    to_send.pwm[0] = data->pwm[0];
+    to_send.pwm[1] = data->pwm[1];
+    to_send.pwm[2] = data->pwm[2];
+    mbot_lcm_msgs_mbot_motor_pwm_t_publish(lcmInstance, MBOT_MOTOR_PWM_CHANNEL, &to_send);
+}
+
 void serial_odometry_cb(serial_pose2D_t* data)
 {
     mbot_lcm_msgs_pose2D_t to_send = {0};
@@ -145,6 +156,16 @@ void serial_odometry_cb(serial_pose2D_t* data)
     to_send.x = data->x;
     to_send.y = data->y;
     mbot_lcm_msgs_pose2D_t_publish(lcmInstance, MBOT_ODOMETRY_CHANNEL, &to_send);
+}
+
+void serial_mbot_vel_cb(serial_twist2D_t* data)
+{
+    mbot_lcm_msgs_twist2D_t to_send = {0};
+    to_send.utime = data->utime;
+    to_send.vx = data->vx;
+    to_send.vy = data->vy;
+    to_send.wz = data->wz;
+    mbot_lcm_msgs_twist2D_t_publish(lcmInstance, MBOT_VEL_CHANNEL, &to_send);
 }
 
 void serial_imu_cb(serial_mbot_imu_t* data)
@@ -177,24 +198,23 @@ void serial_imu_cb(serial_mbot_imu_t* data)
 * and if it originates on the pico, there must be a callback function to copy and publish the LCM message
 */
 void register_topics()
-{
-    // timesync topic
+{   
+    // Topics written to serial
     comms_register_topic(MBOT_TIMESYNC, sizeof(serial_timestamp_t), (Deserialize)&timestamp_t_deserialize, (Serialize)&timestamp_t_serialize, NULL);
-    // odometry topic
-    comms_register_topic(MBOT_ODOMETRY, sizeof(serial_pose2D_t), (Deserialize)&pose2D_t_deserialize, (Serialize)&pose2D_t_serialize, (MsgCb)serial_odometry_cb);
-    // odometry topic
     comms_register_topic(MBOT_ODOMETRY_RESET,  sizeof(serial_pose2D_t), (Deserialize)&pose2D_t_deserialize, (Serialize)&pose2D_t_serialize, NULL);
-    // IMU topic
-    comms_register_topic(MBOT_IMU, sizeof(serial_mbot_imu_t), (Deserialize)&mbot_imu_t_deserialize, (Serialize)&mbot_imu_t_serialize, (MsgCb)serial_imu_cb);
-    // encoders topic
-    comms_register_topic(MBOT_ENCODERS, sizeof(serial_mbot_encoders_t), (Deserialize)&mbot_encoders_t_deserialize, (Serialize)&mbot_encoders_t_serialize, (MsgCb)serial_encoders_cb);
-    // reset encoders topic
     comms_register_topic(MBOT_ENCODERS_RESET, sizeof(serial_mbot_encoders_t), (Deserialize)&mbot_encoders_t_deserialize, (Serialize)&mbot_encoders_t_serialize, NULL);
-    // motor commands topic
     comms_register_topic(MBOT_MOTOR_PWM_CMD, sizeof(serial_mbot_motor_pwm_t), (Deserialize)&mbot_motor_pwm_t_deserialize, (Serialize)&mbot_motor_pwm_t_serialize, NULL);
     comms_register_topic(MBOT_MOTOR_VEL_CMD, sizeof(serial_mbot_motor_vel_t), (Deserialize)&mbot_motor_vel_t_deserialize, (Serialize)&mbot_motor_vel_t_serialize, NULL);
-    comms_register_topic(MBOT_MOTOR_VEL, sizeof(serial_mbot_motor_vel_t), (Deserialize)&mbot_motor_vel_t_deserialize, (Serialize)&mbot_motor_vel_t_serialize, (MsgCb)serial_motor_vel_cb);
     comms_register_topic(MBOT_VEL_CMD, sizeof(serial_twist2D_t), (Deserialize)&twist2D_t_deserialize, (Serialize)&twist2D_t_serialize, NULL);
+
+    // Topics read from serial (require callback)
+    comms_register_topic(MBOT_ODOMETRY, sizeof(serial_pose2D_t), (Deserialize)&pose2D_t_deserialize, (Serialize)&pose2D_t_serialize, (MsgCb)serial_odometry_cb);
+    comms_register_topic(MBOT_IMU, sizeof(serial_mbot_imu_t), (Deserialize)&mbot_imu_t_deserialize, (Serialize)&mbot_imu_t_serialize, (MsgCb)serial_imu_cb);
+    comms_register_topic(MBOT_ENCODERS, sizeof(serial_mbot_encoders_t), (Deserialize)&mbot_encoders_t_deserialize, (Serialize)&mbot_encoders_t_serialize, (MsgCb)serial_encoders_cb);
+    comms_register_topic(MBOT_VEL, sizeof(serial_twist2D_t), (Deserialize)&twist2D_t_deserialize, (Serialize)&twist2D_t_serialize, (MsgCb)serial_mbot_vel_cb);
+    comms_register_topic(MBOT_MOTOR_VEL, sizeof(serial_mbot_motor_vel_t), (Deserialize)&mbot_motor_vel_t_deserialize, (Serialize)&mbot_motor_vel_t_serialize, (MsgCb)serial_motor_vel_cb);
+    comms_register_topic(MBOT_MOTOR_PWM, sizeof(serial_mbot_motor_pwm_t), (Deserialize)&mbot_motor_pwm_t_deserialize, (Serialize)&mbot_motor_pwm_t_serialize, (MsgCb)serial_motor_pwm_cb);
+
 }
 
 void* handle_lcm(void* data)
@@ -203,6 +223,20 @@ void* handle_lcm(void* data)
     while(running)
     {
         lcm_handle_timeout(lcmInstance, 100);
+    }
+    return NULL;
+}
+
+void* timesync_sender(void* data){
+    lcm_t* lcmInstance = data;
+    mbot_lcm_msgs_timestamp_t timestamp;
+    while(running)
+    {
+        struct timeval tv;
+        gettimeofday (&tv, NULL);
+        timestamp.utime = (int64_t) tv.tv_sec * 1000000 + tv.tv_usec;
+        mbot_lcm_msgs_timestamp_t_publish(lcmInstance, MBOT_TIMESYNC_CHANNEL, &timestamp);
+        usleep(TIMESYNC_PERIOD_US);                                                                                                                       
     }
     return NULL;
 }
@@ -230,11 +264,15 @@ int main(int argc, char** argv)
     pthread_t lcmThread;
     pthread_create(&lcmThread, NULL, handle_lcm, lcmInstance);
 
+    printf("Starting the timesync thread...\r\n");
+    pthread_t timesyncThread;
+    pthread_create(&timesyncThread, NULL, timesync_sender, lcmInstance);
+
     printf("Subscribing to lcm...\r\n");
     subscribe_lcm(lcmInstance);
 
     printf("Init Serial....\r\n");
-    int ser_dev = open("/dev/ttyACM1", O_RDWR);
+    int ser_dev = open("/dev/mbot_lcm", O_RDWR);
     tcgetattr(ser_dev, &options);
     cfsetspeed(&options, B115200);
     options.c_cflag &= ~(CSIZE | PARENB | CSTOPB | CRTSCTS);
@@ -266,7 +304,7 @@ int main(int argc, char** argv)
 
     printf("running!\r\n");
     pthread_join(lcmThread, NULL);
-
+    pthread_join(timesyncThread, NULL);
     printf("stopped the lcm thread...\r\n");
     pthread_cancel(serialThread);
     pthread_join(serialThread, NULL);
