@@ -68,63 +68,77 @@ def generate_c_struct(package_name, struct_name, fields, max_string_length=256):
             c_struct += f' {comment}'
         c_struct += '\n'
 
-    c_struct += f'}} serial_{struct_name}_t;\n\n'
+    c_struct += f'}} serial_{struct_name};\n\n'
 
     # Add function prototypes for serialize and deserialize functions
-    c_struct += generate_serialize_deserialize_functions(struct_name)
+    c_struct += generate_function_protoypes(struct_name)
 
     return c_struct
 
-def generate_serialize_deserialize_functions(struct_name):
+def generate_function_protoypes(struct_name):
     """
-    \brief Generate C function prototypes and code for serializing and deserializing
+    \brief Generate C function prototypes for serializing and deserializing
     a given LCM struct type.
 
     \param[in] struct_name The name of the LCM struct type to generate functions for.
 
-    \return A string containing the C function prototypes and code for serializing
+    \return A string containing the C function prototypes for serializing
     and deserializing the LCM struct type.
     """
-
     # Generate deserialize function prototype
-    deserialize_proto = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}_t* dest);'
+    deserialize_proto = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest);'
 
     # Generate serialize function prototype
-    serialize_proto = f'int {struct_name}_serialize(serial_{struct_name}_t* src, uint8_t* dest);'
+    serialize_proto = f'int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest);'
 
+    return deserialize_proto + '\n' + serialize_proto + '\n'
+
+
+def generate_serialize_deserialize_functions(struct_name):
+    """
+    \brief Generate C function code for serializing and deserializing
+    a given LCM struct type.
+
+    \param[in] struct_name The name of the LCM struct type to generate functions for.
+
+    \return A string containing the C function code for serializing
+    and deserializing the LCM struct type.
+    """
     # Generate deserialize function
-    deserialize = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}_t* dest) {{\n'
-    deserialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}_t));\n'
+    deserialize = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest) {{\n'
+    deserialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}));\n'
     deserialize += f'    return 1;\n'
     deserialize += f'}}\n\n'
 
     # Generate serialize function
-    serialize = f'int {struct_name}_serialize(serial_{struct_name}_t* src, uint8_t* dest) {{\n'
-    serialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}_t));\n'
+    serialize = f'int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest) {{\n'
+    serialize += f'    memcpy(dest, src, sizeof(serial_{struct_name}));\n'
     serialize += f'    return 1;\n'
     serialize += f'}}\n'
 
-    return deserialize_proto + '\n' + serialize_proto + '\n' + deserialize + serialize
+    return deserialize + serialize
 
 
-# Process LCM files in a folder and generate C structs and functions.
 def process_lcm_files(folder_path):
     """
     \brief Process LCM files in a folder, generate C structs and functions, and save them in header files.
     
     \param[in] folder_path The path to the folder containing LCM files.
 
-    The function will create one header file for each unique package name found in the LCM files. The header
+    The function will create one header file and one C file for each unique package name found in the LCM files. The header
     files will be named {package_name}_serial.h and will contain the C structs and serialize/deserialize
-    functions for each LCM struct in the package.
+    function prototypes for each LCM struct in the package. The C files will be named {package_name}_serial.c and will
+    contain the serialize/deserialize function implementations.
     """
     lcm_files = [f for f in os.listdir(folder_path) if f.endswith('.lcm')]
 
     package_structs = defaultdict(list)
     package_types = defaultdict(list)
+    package_funcs = defaultdict(list)
 
     for lcm_file in lcm_files:
         c_struct = None
+        c_funcs = None
         file_path = os.path.join(folder_path, lcm_file)
         package_name, struct_name, fields, has_vla = parse_lcm_file(file_path)
         if(has_vla):
@@ -132,12 +146,15 @@ def process_lcm_files(folder_path):
             continue
         
         c_struct = generate_c_struct(package_name, struct_name, fields)
-        # Group structs by package name
-        if c_struct is not None:
+        c_funcs = generate_serialize_deserialize_functions(struct_name)
+        
+        # Group structs and functions by package name
+        if c_struct is not None and c_funcs is not None:
             package_structs[package_name].append(c_struct)
+            package_funcs[package_name].append(c_funcs)
             package_types[package_name].append(struct_name)
 
-    for package_name, structs in package_structs.items():
+    for package_name in package_structs.keys():
         # Generate header file for each package
         header_file_name = f'{package_name}_serial.h'
         with open(header_file_name, 'w') as f:
@@ -152,9 +169,19 @@ def process_lcm_files(folder_path):
             f.write("#include <stdint.h>\n")
             f.write("#include <string.h>\n\n")
             f.write("#include <stdbool.h>\n\n")
-            for struct in structs:
+            for struct in package_structs[package_name]:
                 f.write(struct)
                 f.write("\n\n")
+            f.close()
+        
+        # Generate .c file for each package
+        c_file_name = f'{package_name}_serial.c'
+        with open(c_file_name, 'w') as f:
+            f.write("#include \"" + header_file_name + "\"\n\n")
+            for funcs in package_funcs[package_name]:
+                f.write(funcs)
+                f.write("\n\n")
+            f.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Process LCM files and generate C structs and functions.')

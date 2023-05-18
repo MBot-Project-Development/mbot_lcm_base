@@ -13,7 +13,6 @@ include(${LCM_USE_FILE})
 add_executable(lcm_serial_server src/lcm_serial_server_main.c
   src/comms_common.c
   src/listener.c
-  src/messages_mb.c
   src/protocol.c
   src/topic_data.c
 )

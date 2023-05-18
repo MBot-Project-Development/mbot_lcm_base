@@ -19,6 +19,8 @@
 #define PICO_IN_BYTES   (PICO_IN_MSG + ROS_PKG_LENGTH) //equal to the size of the data_pico struct data plus bytes for ros packaging
 #define RPI_IN_BYTES    (RPI_IN_MSG + ROS_PKG_LENGTH) //equal to the size of the data_rpi struct data plus bytes for ros packaging
 
+#define TIMESYNC_PERIOD_US 1000000
+
 // specific checksum method as defined by http://wiki.ros.org/rosserial/Overview/Protocol
 uint8_t checksum(uint8_t* addends, int len);
 
