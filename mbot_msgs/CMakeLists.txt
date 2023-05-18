@@ -45,6 +45,7 @@ lcm_wrap_types(
   lcmtypes/lidar_t.lcm
   lcmtypes/mbot_msg_received_t.lcm
   lcmtypes/particle_t.lcm
+  lcmtypes/slam_status_t.lcm
 )
 
 lcm_add_library(mbot_lcm_msgs C ${c_sources} ${c_headers})
