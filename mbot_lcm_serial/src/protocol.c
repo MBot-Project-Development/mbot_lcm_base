@@ -1,6 +1,7 @@
 #include <mbot_lcm_serial/protocol.h>
 #include <mbot_lcm_serial/comms_common.h>
 #include <unistd.h>
+#include <errno.h>
 
 topic_registry_entry_t* topic_registry_root_node;
 int* serial_device_ptr;
@@ -107,7 +108,15 @@ int comms_generate_packet(uint16_t topic_id, void* topic_struct, uint8_t** packe
 
 int comms_send_serial(uint8_t* packet_out, uint32_t packet_len)
 {
-    return write(*serial_device_ptr, packet_out, packet_len);
+    if(serial_device_ptr != NULL){
+        int rtn = write(*serial_device_ptr, packet_out, packet_len);
+        if(rtn < 0){
+            fprintf(stderr, "[DEBUG] Error writing to serial device: %s\n", strerror(errno));
+            return -1;
+        }
+        return rtn;
+    }
+    return -1;
 }
 
 int comms_write_topic_test(uint16_t topic_id, void* topic_struct)
@@ -138,10 +147,15 @@ int comms_write_topic(uint16_t topic_id, void* topic_struct)
     uint32_t packet_len = 0;
     if(comms_generate_packet(topic_id, topic_struct, &packet_data, &packet_len))
     {
-        comms_send_serial(packet_data, packet_len);
+        int rtn = comms_send_serial(packet_data, packet_len);
+        free(packet_data);
         // we call calloc(..) during the comms_generate_packet function
         // so make sure we free that memory here to avoid a leak
-        free(packet_data);
+        if(rtn < 0){
+            printf("[ERROR] comms_write_topic: failed comms_send\n");
+            return -1;
+        }
+ 
     }
     else
     {

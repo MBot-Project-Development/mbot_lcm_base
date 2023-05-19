@@ -32,6 +32,7 @@
 struct termios options;
 
 bool running = true;
+bool serial_ok = false;
 
 lcm_t* lcmInstance;
 
@@ -43,8 +44,14 @@ static void mbot_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* cha
     to_send.vx = msg->vx;
     to_send.vy = msg->vy;
     to_send.wz = msg->wz;
-    comms_set_topic_data(MBOT_VEL_CMD, &to_send, sizeof(serial_twist2D_t));
-    comms_write_topic(MBOT_VEL_CMD, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_VEL_CMD, &to_send, sizeof(serial_twist2D_t));
+        int status = comms_write_topic(MBOT_VEL_CMD, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
 }
 
 static void reset_encoders_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -59,8 +66,14 @@ static void reset_encoders_lcm_handler(const lcm_recv_buf_t* rbuf, const char* c
     to_send.delta_ticks[1] = msg->delta_ticks[1];
     to_send.delta_ticks[2] = msg->delta_ticks[2];
     to_send.delta_time = msg->delta_time;
-    comms_set_topic_data(MBOT_ENCODERS_RESET, &to_send, sizeof(serial_mbot_encoders_t));
-    comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_ENCODERS_RESET, &to_send, sizeof(serial_mbot_encoders_t));
+        int status = comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
 }
 
 static void timestamp_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -69,8 +82,14 @@ static void timestamp_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channe
     //printf("got timestamp!\r\n");
     serial_timestamp_t to_send = {0};
     to_send.utime = msg->utime;
-    comms_set_topic_data(MBOT_TIMESYNC, &to_send, sizeof(serial_timestamp_t));
-    comms_write_topic(MBOT_TIMESYNC, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_TIMESYNC, &to_send, sizeof(serial_timestamp_t));
+        int status = comms_write_topic(MBOT_TIMESYNC, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
     //printf("sent timestamp!\r\n");
 }
 
@@ -81,8 +100,14 @@ static void reset_odom_lcm_handler(const lcm_recv_buf_t* rbuf, const char* chann
     to_send.theta = msg->theta;
     to_send.x = msg->x;
     to_send.y = msg->y;
-    comms_set_topic_data(MBOT_ODOMETRY_RESET, &to_send, sizeof(serial_pose2D_t));
-    comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_ODOMETRY_RESET, &to_send, sizeof(serial_pose2D_t));
+        int status = comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
 }
 
 static void mbot_motor_pwm_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -93,8 +118,14 @@ static void mbot_motor_pwm_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const cha
     to_send.pwm[0] = msg->pwm[0];
     to_send.pwm[1] = msg->pwm[1];
     to_send.pwm[2] = msg->pwm[2];
-    comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_pwm_t));
-    comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_pwm_t));
+        int status = comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
 }
 
 static void mbot_motor_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -105,8 +136,14 @@ static void mbot_motor_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const cha
     to_send.velocity[0] = msg->velocity[0];
     to_send.velocity[1] = msg->velocity[1];
     to_send.velocity[2] = msg->velocity[2];
-    comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_vel_t));
-    comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+    if(serial_ok){
+        comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_vel_t));
+        int status = comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+        if (status < 0){
+            listener_running = false;
+            serial_ok = false;
+        }
+    }
 }
 
 void signal_callback_handler(int signum)
@@ -114,6 +151,7 @@ void signal_callback_handler(int signum)
     printf("Caught exit signal - exiting!\r\n");
     running = false;
     listener_running = false;
+    serial_ok = false;
 }
 
 void serial_encoders_cb(serial_mbot_encoders_t* msg)
@@ -276,14 +314,14 @@ int configure_serial(int ser_dev){
 
 int main(int argc, char** argv)
 {
-    printf("Starting the serial/lcm shim...\r\n");
+    printf("Starting LCM Serial...\r\n");
     // Register signal and signal handler
     signal(SIGINT, signal_callback_handler);
 
-    printf("Making the lcm instance...\r\n");
+    printf("Making the LCM instance...\r\n");
     lcmInstance = lcm_create(MULTICAST_URL);
-    printf("Starting the lcm handle thread...\r\n");
-
+    
+    printf("Starting the LCM handle thread...\r\n");
     pthread_t lcmThread;
     pthread_create(&lcmThread, NULL, handle_lcm, lcmInstance);
 
@@ -291,45 +329,54 @@ int main(int argc, char** argv)
     pthread_t timesyncThread;
     pthread_create(&timesyncThread, NULL, timesync_sender, lcmInstance);
 
-    printf("Subscribing to lcm...\r\n");
+    printf("Subscribing to LCM...\r\n");
     subscribe_lcm(lcmInstance);
 
     int ser_dev = -1;
     pthread_t serialThread;
 
     while(running){
-        while(ser_dev < 0){
-            ser_dev = open(MBOT_LCM_SERIAL_PORT, O_RDWR);
+        while((ser_dev < 0) || (!serial_ok)){
+            ser_dev = open(MBOT_LCM_SERIAL_PORT, O_RDWR | O_NONBLOCK);
             if(ser_dev < 0){
                 printf("Error %i from open: %s\n", errno, strerror(errno));
+                printf("*** Mbot Control Board not found ***\n");
+                if(!running){
+                    break;
+                }
                 sleep(1);
+            }
+            else{
+                serial_ok = true;
             }
         }
 
-        if(configure_serial(ser_dev) != 0){
-            close(ser_dev);
-            ser_dev = -1;
-            continue;
-        }
-
+        configure_serial(ser_dev);
         comms_init_protocol(&ser_dev);
         comms_init_topic_data();
         register_topics();
 
         printf("Starting the serial thread...\r\n");
         pthread_create(&serialThread, NULL, comms_listener_loop, NULL);
-
+        
         printf("running!\r\n");
         pthread_join(serialThread, NULL);
-        printf("stopped the serial thread...\r\n");
+        serial_ok = false;
+        printf("[ERROR] serial thread exited, device disconnected...\r\n");
         close(ser_dev);
         printf("closed the serial port...\r\n");
         ser_dev = -1;
     }
+    // Cleanup
+    printf("stopping the serial thread...\r\n");
+    pthread_join(serialThread, NULL);
+    serial_ok = false;
+    close(ser_dev);
 
-    printf("stopped the lcm thread...\r\n");
-    pthread_join(lcmThread, NULL);
+    printf("stopping the lcm threads...\r\n");
     pthread_join(timesyncThread, NULL);
+    pthread_join(lcmThread, NULL);
+
     printf("exiting!\r\n");
     return 0;
 }

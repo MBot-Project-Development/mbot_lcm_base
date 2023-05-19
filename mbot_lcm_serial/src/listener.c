@@ -4,22 +4,33 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <errno.h> // Error integer and strerror() function
 
 bool listener_running;
 
 // Header read function
-bool read_header(uint8_t* header_data, int* serial_device_ptr) {
+int read_header(uint8_t* header_data, int* serial_device_ptr) {
     unsigned char trigger_val = 0x00;
-    int rc = 0x00;
+    int rc = 0;
     while (trigger_val != 0xff && listener_running && rc != 1) {
         rc = read(*serial_device_ptr, &trigger_val, 1);
-        if(rc < 0){return -1;}
+        if(rc < 0){
+            if(errno == EAGAIN || errno == EWOULDBLOCK){
+                usleep(1000);
+                continue;
+            }
+            else{
+                perror("read");
+                return -2;
+            }
+        }
+        else if(rc == 0){
+            printf("Device Disconnected\n");
+            return -3;
+        }
     }
     header_data[0] = trigger_val;
-
     rc = read(*serial_device_ptr, &header_data[1], ROS_HEADER_LENGTH - 1);
-    if(rc < 0){return -1;}
-
     return (rc == ROS_HEADER_LENGTH - 1);
 }
 
@@ -79,14 +90,17 @@ void *comms_listener_loop(void *arg) {
     header_data[0] = 0x00;
 
     listener_running = true;
-    while (listener_running) {
+    while (listener_running && serial_ok) {
 
         // Read the header and check if we lost serial connection
         int header_status = read_header(header_data, serial_device_ptr);
         if(header_status < 0){
-            printf("[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
+            printf("[ERROR] cannot read header from serial device, exiting thread to attempt reconnect...\n");
+            serial_device_ptr = NULL;
+            listener_running = false;
             break;  // Break the loop if the device is not available
         }
+        
         
         bool valid_header = (header_status == 1);
         if (valid_header) {
@@ -99,7 +113,7 @@ void *comms_listener_loop(void *arg) {
             uint8_t msg_data_serialized[message_len];
 
             int avail = 0;
-            while (avail < (message_len + 1)) {
+            while (avail < (message_len + 1) && serial_ok) {
                 ioctl(*serial_device_ptr, FIONREAD, &avail);
             }
             
@@ -107,7 +121,9 @@ void *comms_listener_loop(void *arg) {
             char topic_msg_data_checksum = 0;            
             int message_status = read_message(msg_data_serialized, message_len, &topic_msg_data_checksum, serial_device_ptr);
             if (message_status < 0) {
-                printf("[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
+                printf("[ERROR] cannot read message from serial device, exiting thread to attempt reconnect...\n");
+                serial_device_ptr = NULL;
+                listener_running = false;
                 break;  // Break the loop if the device is not available
             }
 

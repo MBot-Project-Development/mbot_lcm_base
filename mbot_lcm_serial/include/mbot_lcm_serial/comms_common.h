@@ -33,4 +33,5 @@ uint8_t* int32_to_bytes(int32_t i32t);
 // encodes a message and topic into a bytes array 'ROSPKT' as defined by http://wiki.ros.org/rosserial/Overview/Protocol
 int encode_msg(uint8_t* MSG, int msg_len, uint16_t TOPIC, uint8_t* ROSPKT, int rospkt_len);
 
+
 #endif

@@ -30,6 +30,6 @@ extern topic_data_entry_t* topic_data_root_node;
 
 int comms_init_topic_data(void);
 int comms_get_topic_data(uint16_t topic_id, void* msg_struct);
-void comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_len);
+int comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_len);
 
 #endif

@@ -49,8 +49,12 @@ int comms_get_topic_data(uint16_t topic_id, void* msg_struct)
     return 1;
 }
 
-void comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_len)
+int comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_len)
 {
+    if(msg_struct == NULL || message_len <= 0){
+        printf("[ERROR] msg_struct is NULL or message length is < 0\n");
+        return -1;
+    }
     int cur_radix = 0;
     topic_data_entry_t* cur_node = topic_data_root_node;
     // find the proper node in the data structure
@@ -63,6 +67,10 @@ void comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_
             if(cur_node->right == NULL)
             {
                 cur_node->right = (topic_data_entry_t*)calloc(1, sizeof(topic_data_entry_t));
+                if(cur_node->right == NULL){
+                    printf("[ERROR] calloc returned NULL\n");
+                    return -1;
+                }
             }
             cur_node = cur_node->right;
         }
@@ -71,6 +79,10 @@ void comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_
             if(cur_node->left == NULL)
             {
                 cur_node->left = (topic_data_entry_t*)calloc(1, sizeof(topic_data_entry_t));
+                if(cur_node->left == NULL){
+                    printf("[ERROR] calloc returned NULL\n");
+                    return -1;
+                }
             }
             cur_node = cur_node->left;
         }
@@ -91,4 +103,5 @@ void comms_set_topic_data(uint16_t topic_id, void* msg_struct, uint16_t message_
     //mutex_enter_blocking(&cur_node->value->topic_mutex);
     memcpy(cur_node->value->topic_data, msg_struct, message_len);
     //mutex_exit(&cur_node->value->topic_mutex);
+    return 1;
 }

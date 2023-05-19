@@ -4,6 +4,7 @@
 #include <string.h>
 #include <search.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #include "comms_common.h"
 
@@ -44,5 +45,7 @@ int comms_generate_packet(uint16_t topic_id, void* topic_struct, uint8_t** packe
 int comms_send_serial(uint8_t* packet_out, uint32_t packet_len);
 int comms_write_topic_test(uint16_t topic_id, void* topic_struct);
 int comms_write_topic(uint16_t topic_id, void* topic_struct);
+
+extern bool serial_ok;
 
 #endif

@@ -14,6 +14,7 @@
 #ifndef LISTENER_H
 #define LISTENER_H
 extern bool listener_running;
+
 void* comms_listener_loop(void* arg);
 
 #endif
