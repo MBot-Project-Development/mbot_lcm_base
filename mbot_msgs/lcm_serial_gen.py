@@ -86,10 +86,10 @@ def generate_function_protoypes(struct_name):
     and deserializing the LCM struct type.
     """
     # Generate deserialize function prototype
-    deserialize_proto = f'int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest);'
+    deserialize_proto = f'static inline int {struct_name}_deserialize(uint8_t* src, serial_{struct_name}* dest);'
 
     # Generate serialize function prototype
-    serialize_proto = f'int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest);'
+    serialize_proto = f'static inline int {struct_name}_serialize(serial_{struct_name}* src, uint8_t* dest);'
 
     return deserialize_proto + '\n' + serialize_proto + '\n'
 
@@ -165,6 +165,8 @@ def process_lcm_files(folder_path):
  * Included LCM types:
  *   {type_list}
  */\n\n""")
+            f.write("#ifndef SERIAL_MSG_H\n")
+            f.write("#define SERIAL_MSG_H\n")
             f.write("#pragma once\n")
             f.write("#include <stdint.h>\n")
             f.write("#include <string.h>\n\n")
@@ -172,16 +174,20 @@ def process_lcm_files(folder_path):
             for struct in package_structs[package_name]:
                 f.write(struct)
                 f.write("\n\n")
+            for func in package_funcs[package_name]:
+                f.write(func)
+                f.write("\n\n")
+            f.write("#endif\n")
             f.close()
         
-        # Generate .c file for each package
-        c_file_name = f'{package_name}_serial.c'
-        with open(c_file_name, 'w') as f:
-            f.write("#include \"" + header_file_name + "\"\n\n")
-            for funcs in package_funcs[package_name]:
-                f.write(funcs)
-                f.write("\n\n")
-            f.close()
+        # # Generate .c file for each package
+        # c_file_name = f'{package_name}_serial.c'
+        # with open(c_file_name, 'w') as f:
+        #     f.write("#include \"" + header_file_name + "\"\n\n")
+        #     for funcs in package_funcs[package_name]:
+        #         f.write(funcs)
+        #         f.write("\n\n")
+        #     f.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Process LCM files and generate C structs and functions.')
