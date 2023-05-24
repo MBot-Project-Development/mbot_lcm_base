@@ -50,9 +50,8 @@ lcm_wrap_types(
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
-#    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
-    COMMAND python3 ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes
-    DEPENDS ${CMAKE_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_SOURCE_DIR}/lcmtypes/*.lcm
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_CURRENT_SOURCE_DIR}/lcmtypes
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_CURRENT_SOURCE_DIR}/lcmtypes/*.lcm
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c/.h"
 )
