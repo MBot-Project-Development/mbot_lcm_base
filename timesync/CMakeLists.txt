@@ -5,7 +5,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(Threads REQUIRED)
 find_package(lcm REQUIRED)
-find_package(mbot_lcm_msgs)
 
 include(${LCM_USE_FILE})
 
@@ -15,6 +14,7 @@ add_executable(mbot_timesync
 )
 target_link_libraries(mbot_timesync
   lcm
+  mbot_lcm_msgs-cpp
 )
 target_include_directories(mbot_timesync PRIVATE
   include

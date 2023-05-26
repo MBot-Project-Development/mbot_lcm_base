@@ -5,7 +5,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
 find_package(Threads REQUIRED)
 find_package(lcm REQUIRED)
-find_package(mbot_lcm_msgs)
 
 include(${LCM_USE_FILE})
 
