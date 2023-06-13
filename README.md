@@ -13,3 +13,11 @@ make
 ```
 
 You will likely want to install the MBot message types so they can be used across the system for other packages. To do this, do `sudo make install`.
+
+## Uninstalling
+
+You can uninstall with:
+```bash
+cd build
+xargs rm < install_manifest.txt
+```
