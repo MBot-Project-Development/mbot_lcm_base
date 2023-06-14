@@ -19,5 +19,5 @@ You will likely want to install the MBot message types so they can be used acros
 You can uninstall with:
 ```bash
 cd build
-xargs rm < install_manifest.txt
+sudo xargs rm < install_manifest.txt
 ```

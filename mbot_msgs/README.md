@@ -21,3 +21,7 @@ To use the messages in another CMake package (i.e. for C or C++ code), find it i
 ```cmake
 find_package(mbot_lcm_msgs REQUIRED)
 ```
+
+## mbot_firmware
+
+Currently, the files mbot_lcm_msgs_serial.c and mbot_lcm_msgs_serial.h need to be copied over to mbot_firmware/comms/src and include respectively.
