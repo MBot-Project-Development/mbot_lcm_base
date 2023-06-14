@@ -106,11 +106,11 @@ if(Python3_FOUND)
   execute_process(
     COMMAND "${Python3_EXECUTABLE}" -c "if True:
       import sysconfig as sc
-      print(sc.get_path('platlib'))"
+      print(sc.get_path('stdlib'))"
     OUTPUT_VARIABLE PY_INSTALL_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
-  message("INSTALLING TO ${PY_INSTALL_DIR}")
+  message("INSTALLING PYTHON TO ${PY_INSTALL_DIR}")
   lcm_install_python(DESTINATION ${PY_INSTALL_DIR} ${python_sources})
 endif()
 

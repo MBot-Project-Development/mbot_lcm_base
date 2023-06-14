@@ -14,8 +14,10 @@ make
 
 You will likely want to install the MBot message types so they can be used across the system for other packages. To do this, do `sudo make install`.
 
-You will also need to install the lcm_serial_server
+## Uninstalling
 
+You can uninstall with:
 ```bash
-sudo cp mbot_lcm_serial/lcm_serial_server /usr/local/bin/
+cd build
+sudo xargs rm < install_manifest.txt
 ```
