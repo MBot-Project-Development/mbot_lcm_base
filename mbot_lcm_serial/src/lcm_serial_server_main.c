@@ -82,7 +82,7 @@ static void reset_odom_lcm_handler(const lcm_recv_buf_t* rbuf, const char* chann
     to_send.x = msg->x;
     to_send.y = msg->y;
     comms_set_topic_data(MBOT_ODOMETRY_RESET, &to_send, sizeof(serial_pose2D_t));
-    comms_write_topic(MBOT_ENCODERS_RESET, &to_send);
+    comms_write_topic(MBOT_ODOMETRY_RESET, &to_send);
 }
 
 static void mbot_motor_pwm_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -105,8 +105,8 @@ static void mbot_motor_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const cha
     to_send.velocity[0] = msg->velocity[0];
     to_send.velocity[1] = msg->velocity[1];
     to_send.velocity[2] = msg->velocity[2];
-    comms_set_topic_data(MBOT_MOTOR_PWM_CMD, &to_send, sizeof(serial_mbot_motor_vel_t));
-    comms_write_topic(MBOT_MOTOR_PWM_CMD, &to_send);
+    comms_set_topic_data(MBOT_MOTOR_VEL_CMD, &to_send, sizeof(serial_mbot_motor_vel_t));
+    comms_write_topic(MBOT_MOTOR_VEL_CMD, &to_send);
 }
 
 void signal_callback_handler(int signum)
