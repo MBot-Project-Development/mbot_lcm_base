@@ -4,6 +4,14 @@ This repo contains some essential subpackages needed by all other MBot applicati
 * [mbot_lcm_serial](mbot_lcm_serial): LCM-to-serial communication with the MBot control board.
 * [mbot_msgs](mbot_msgs): Message type definitions for LCM.
 
+## Fast Install
+
+To build and install code and services, you can use the install script:
+```bash
+./scripts/install.sh
+```
+You do not need to follow any of the other build steps if you use the install script.
+
 ## Build instructions
 
 ```bash
