@@ -23,3 +23,15 @@ target_link_libraries(lcm_serial_server
 target_include_directories(lcm_serial_server PRIVATE
   include
 )
+
+# This is needed to find the shared libraries correctly on RPi OS.
+set_target_properties(lcm_serial_server PROPERTIES
+    INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib
+    BUILD_WITH_INSTALL_RPATH 1
+)
+
+# INSTALL needed binaries.
+install(
+  TARGETS lcm_serial_server
+  DESTINATION bin
+)
