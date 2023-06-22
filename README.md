@@ -14,6 +14,11 @@ make
 
 You will likely want to install the MBot message types so they can be used across the system for other packages. To do this, do `sudo make install`.
 
+Finally, in order for the message definitions to be accessible on the terminal for lcm-spy in the future, run this command:
+```bash
+echo 'export CLASSPATH=$CLASSPATH:"/usr/local/share/java/mbot_lcm_msgs.jar"' >> ~/.bashrc
+```
+
 ## Uninstalling
 
 You can uninstall with:
