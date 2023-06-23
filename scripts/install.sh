@@ -25,5 +25,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable $LCM_SERIAL_SRV_NAME
 sudo systemctl restart $LCM_SERIAL_SRV_NAME
 
+# Insert line for classpath into bashrc
+echo 'export CLASSPATH=$CLASSPATH:"/usr/local/share/java/mbot_lcm_msgs.jar"' >> ~/.bashrc
+
 echo
 echo "Done!"
