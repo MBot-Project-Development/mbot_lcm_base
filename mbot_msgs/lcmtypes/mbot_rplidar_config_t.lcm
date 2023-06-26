@@ -1,0 +1,10 @@
+// mbot_rplidar_config_t is sent from the slam service to change the motor's spin speed,
+// change the stride of the LIDAR channel data output, or potentially other configuration
+// that can be set to the rplidar driver.
+package mbot_lcm_msgs;
+
+struct mbot_rplidar_config_t
+{
+    boolean motor_on;           // Turn the LiDAR scan and motor on/off
+    int32_t ray_stride;         // Stride of lidar ray data
+}
