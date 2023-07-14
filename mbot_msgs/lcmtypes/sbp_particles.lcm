@@ -1,0 +1,10 @@
+package mbot_lcm_msgs;
+
+struct sbp_particles
+{
+    // number of particles = 50
+    // horizon = 20
+    // dimension = 2
+    // can be set larger for flexibility (unsused dimension can be set to 0)
+    double particles[50][20][2];
+}

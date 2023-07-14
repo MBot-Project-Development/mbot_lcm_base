@@ -46,6 +46,7 @@ lcm_wrap_types(
   lcmtypes/mbot_msg_received_t.lcm
   lcmtypes/particle_t.lcm
   lcmtypes/slam_status_t.lcm
+  lcmtypes/sbp_particles.lcm
 )
 
 add_custom_command(
