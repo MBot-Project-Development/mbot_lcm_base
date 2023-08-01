@@ -4,6 +4,8 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <sys/time.h>
+
 
 bool listener_running;
 
@@ -99,7 +101,9 @@ void *comms_listener_loop(void *arg) {
             uint8_t msg_data_serialized[message_len];
 
             int avail = 0;
+            ioctl(*serial_device_ptr, FIONREAD, &avail);
             while (avail < (message_len + 1)) {
+                usleep(1000);
                 ioctl(*serial_device_ptr, FIONREAD, &avail);
             }
             
