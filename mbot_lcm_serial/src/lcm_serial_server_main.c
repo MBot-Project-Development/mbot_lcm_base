@@ -279,18 +279,16 @@ int main(int argc, char** argv)
     printf("Starting the serial/lcm shim...\r\n");
     // Register signal and signal handler
     signal(SIGINT, signal_callback_handler);
+    signal(SIGTERM, signal_callback_handler);
 
     printf("Making the lcm instance...\r\n");
     lcmInstance = lcm_create(MULTICAST_URL);
-    printf("Starting the lcm handle thread...\r\n");
-
-    pthread_t lcmThread;
-    pthread_create(&lcmThread, NULL, handle_lcm, lcmInstance);
 
     printf("Starting the timesync thread...\r\n");
     pthread_t timesyncThread;
     pthread_create(&timesyncThread, NULL, timesync_sender, lcmInstance);
 
+    pthread_t lcmThread;
     printf("Subscribing to lcm...\r\n");
     subscribe_lcm(lcmInstance);
 
@@ -298,12 +296,15 @@ int main(int argc, char** argv)
     pthread_t serialThread;
 
     while(running){
-        while(ser_dev < 0){
+        while(ser_dev < 0 && running){
             ser_dev = open(MBOT_LCM_SERIAL_PORT, O_RDWR);
             if(ser_dev < 0){
-                printf("Error %i from open: %s\n", errno, strerror(errno));
+                printf("Error %i from open: %s. Is the MBot Control Board plugged in?\n", errno, strerror(errno));
                 sleep(1);
             }
+        }
+        if(!running){
+            break; //If nothing is initialized and we wish to quit, avoid initializing everything
         }
 
         if(configure_serial(ser_dev) != 0){
@@ -318,17 +319,21 @@ int main(int argc, char** argv)
 
         printf("Starting the serial thread...\r\n");
         pthread_create(&serialThread, NULL, comms_listener_loop, NULL);
+        printf("Starting the lcm handle thread...\r\n");
+        pthread_create(&lcmThread, NULL, handle_lcm, lcmInstance);
 
         printf("running!\r\n");
         pthread_join(serialThread, NULL);
+        printf("stopped the lcm thread...\r\n");
+        pthread_join(lcmThread, NULL);
+
         printf("stopped the serial thread...\r\n");
         close(ser_dev);
         printf("closed the serial port...\r\n");
         ser_dev = -1;
     }
 
-    printf("stopped the lcm thread...\r\n");
-    pthread_join(lcmThread, NULL);
+    
     pthread_join(timesyncThread, NULL);
     printf("exiting!\r\n");
     return 0;
