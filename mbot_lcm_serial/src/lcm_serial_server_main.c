@@ -32,6 +32,7 @@
 struct termios options;
 
 bool running = true;
+bool listener_running = true;
 
 lcm_t* lcmInstance;
 
@@ -66,12 +67,12 @@ static void reset_encoders_lcm_handler(const lcm_recv_buf_t* rbuf, const char* c
 static void timestamp_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
                                   const mbot_lcm_msgs_timestamp_t* msg, void* _user)
 {
-    //printf("got timestamp!\r\n");
+    //fprintf(stderr,"got timestamp!\r\n");
     serial_timestamp_t to_send = {0};
     to_send.utime = msg->utime;
     comms_set_topic_data(MBOT_TIMESYNC, &to_send, sizeof(serial_timestamp_t));
     comms_write_topic(MBOT_TIMESYNC, &to_send);
-    //printf("sent timestamp!\r\n");
+    //fprintf(stderr,"sent timestamp!\r\n");
 }
 
 static void reset_odom_lcm_handler(const lcm_recv_buf_t* rbuf, const char* channel,
@@ -111,7 +112,7 @@ static void mbot_motor_vel_cmd_lcm_handler(const lcm_recv_buf_t* rbuf, const cha
 
 void signal_callback_handler(int signum)
 {
-    printf("Caught exit signal - exiting!\r\n");
+    fprintf(stderr,"Caught exit signal - exiting!\r\n");
     running = false;
     listener_running = false;
 }
@@ -267,7 +268,7 @@ int configure_serial(int ser_dev){
     tcsetattr(ser_dev, TCSANOW, &options);
     if(tcgetattr(ser_dev, &options) != 0)
     {
-        printf("Error %i from tcgetattr: %s\n", errno, strerror(errno));
+        fprintf(stderr,"Error %i from tcgetattr: %s\n", errno, strerror(errno));
         return -1;
     }
     return 0;
@@ -276,20 +277,24 @@ int configure_serial(int ser_dev){
 
 int main(int argc, char** argv)
 {
-    printf("Starting the serial/lcm shim...\r\n");
+    fprintf(stderr,"Starting the serial/lcm shim...\r\n");
     // Register signal and signal handler
     signal(SIGINT, signal_callback_handler);
     signal(SIGTERM, signal_callback_handler);
 
-    printf("Making the lcm instance...\r\n");
+    fprintf(stderr,"Making the lcm instance...\r\n");
     lcmInstance = lcm_create(MULTICAST_URL);
+    if(!lcmInstance){
+        fprintf(stderr,"LCM not available. Exiting...\r\n");
+        return -1;
+    }
 
-    printf("Starting the timesync thread...\r\n");
+    fprintf(stderr,"Starting the timesync thread...\r\n");
     pthread_t timesyncThread;
     pthread_create(&timesyncThread, NULL, timesync_sender, lcmInstance);
 
     pthread_t lcmThread;
-    printf("Subscribing to lcm...\r\n");
+    fprintf(stderr,"Subscribing to lcm...\r\n");
     subscribe_lcm(lcmInstance);
 
     int ser_dev = -1;
@@ -299,7 +304,7 @@ int main(int argc, char** argv)
         while(ser_dev < 0 && running){
             ser_dev = open(MBOT_LCM_SERIAL_PORT, O_RDWR);
             if(ser_dev < 0){
-                printf("Error %i from open: %s. Is the MBot Control Board plugged in?\n", errno, strerror(errno));
+                fprintf(stderr,"Error %i from open: %s. Is the MBot Control Board plugged in?\n", errno, strerror(errno));
                 sleep(1);
             }
         }
@@ -317,24 +322,24 @@ int main(int argc, char** argv)
         comms_init_topic_data();
         register_topics();
 
-        printf("Starting the serial thread...\r\n");
+        fprintf(stderr,"Starting the serial thread...\r\n");
         pthread_create(&serialThread, NULL, comms_listener_loop, NULL);
-        printf("Starting the lcm handle thread...\r\n");
+        fprintf(stderr,"Starting the lcm handle thread...\r\n");
         pthread_create(&lcmThread, NULL, handle_lcm, lcmInstance);
 
-        printf("running!\r\n");
+        fprintf(stderr,"running!\r\n");
         pthread_join(serialThread, NULL);
-        printf("stopped the lcm thread...\r\n");
+        fprintf(stderr,"stopped the lcm thread...\r\n");
         pthread_join(lcmThread, NULL);
 
-        printf("stopped the serial thread...\r\n");
+        fprintf(stderr,"stopped the serial thread...\r\n");
         close(ser_dev);
-        printf("closed the serial port...\r\n");
+        fprintf(stderr,"closed the serial port...\r\n");
         ser_dev = -1;
     }
 
     
     pthread_join(timesyncThread, NULL);
-    printf("exiting!\r\n");
+    fprintf(stderr,"exiting!\r\n");
     return 0;
 }
