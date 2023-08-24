@@ -7,8 +7,6 @@
 #include <sys/time.h>
 
 
-bool listener_running;
-
 // Header read function
 bool read_header(uint8_t* header_data, int* serial_device_ptr) {
     unsigned char trigger_val = 0x00;
@@ -80,7 +78,6 @@ void *comms_listener_loop(void *arg) {
     uint8_t header_data[ROS_HEADER_LENGTH];
     header_data[0] = 0x00;
 
-    listener_running = true;
     while (listener_running) {
 
         // Read the header and check if we lost serial connection

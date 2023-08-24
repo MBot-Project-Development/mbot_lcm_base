@@ -32,6 +32,7 @@
 struct termios options;
 
 bool running = true;
+bool listener_running = true;
 
 lcm_t* lcmInstance;
 
@@ -283,6 +284,10 @@ int main(int argc, char** argv)
 
     printf("Making the lcm instance...\r\n");
     lcmInstance = lcm_create(MULTICAST_URL);
+    if(!lcmInstance){
+        printf("LCM not available. Exiting...\r\n");
+        return -1;
+    }
 
     printf("Starting the timesync thread...\r\n");
     pthread_t timesyncThread;
