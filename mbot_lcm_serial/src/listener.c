@@ -83,7 +83,7 @@ void *comms_listener_loop(void *arg) {
         // Read the header and check if we lost serial connection
         int header_status = read_header(header_data, serial_device_ptr);
         if(header_status < 0){
-            printf("[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
+            fprintf(stderr,"[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
             break;  // Break the loop if the device is not available
         }
         
@@ -99,16 +99,19 @@ void *comms_listener_loop(void *arg) {
 
             int avail = 0;
             ioctl(*serial_device_ptr, FIONREAD, &avail);
-            while (avail < (message_len + 1)) {
+            while (avail < (message_len + 1) && listener_running) {
                 usleep(1000);
                 ioctl(*serial_device_ptr, FIONREAD, &avail);
+            }
+            if(!listener_running){
+                break;
             }
             
             // Read the message and check if we lost serial connection
             char topic_msg_data_checksum = 0;            
             int message_status = read_message(msg_data_serialized, message_len, &topic_msg_data_checksum, serial_device_ptr);
             if (message_status < 0) {
-                printf("[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
+                fprintf(stderr,"[ERROR] Serial device is not available, exiting thread to attempt reconnect...\n");
                 break;  // Break the loop if the device is not available
             }
 

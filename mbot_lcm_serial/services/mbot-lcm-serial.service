@@ -1,6 +1,7 @@
 [Unit]
 Description=LCM Serial Server
-After=graphical.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 PIDFile=/run/mbot_lcm_serial.pid
