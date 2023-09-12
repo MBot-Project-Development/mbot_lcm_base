@@ -1,0 +1,11 @@
+package mbot_lcm_msgs;
+
+struct trajectory2D_t
+{
+    int64_t utime;                      // Time of path creation
+
+    float dt;                           // Timestep between trajectory points.
+    int32_t path_length;                // Number of poses in the path
+    pose2D_t position[path_length];     // Sequence of poses that make up the path
+    twist2D_t velocity[path_length];    // Sequence of velocities that make up the path
+}

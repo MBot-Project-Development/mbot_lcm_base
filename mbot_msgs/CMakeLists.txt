@@ -30,6 +30,7 @@ lcm_wrap_types(
   lcmtypes/twist2D_t.lcm
   lcmtypes/timestamp_t.lcm
   lcmtypes/path2D_t.lcm
+  lcmtypes/trajectory2D_t.lcm
   lcmtypes/pose2D_t.lcm
   lcmtypes/mbot_slam_reset_t.lcm
   lcmtypes/particles_t.lcm
