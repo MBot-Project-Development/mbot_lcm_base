@@ -2,7 +2,7 @@
 #define LCM_CONFIG_H
 
 
-#define MULTICAST_URL "udpm://239.255.76.67:7667?ttl=2"
+#define MULTICAST_URL "udpm://239.255.76.67:7667?ttl=0"
 
 /////// LCM channels //////
 #define MBOT_TIMESYNC_CHANNEL "MBOT_TIMESYNC"
