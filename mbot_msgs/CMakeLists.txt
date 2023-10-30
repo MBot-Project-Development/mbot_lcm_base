@@ -43,9 +43,11 @@ lcm_wrap_types(
   lcmtypes/mbot_motor_vel_t.lcm
   lcmtypes/twist3D_t.lcm
   lcmtypes/lidar_t.lcm
-  lcmtypes/mbot_msg_received_t.lcm
+  lcmtypes/mbot_message_received_t.lcm
   lcmtypes/particle_t.lcm
   lcmtypes/slam_status_t.lcm
+  lcmtypes/exploration_status_t.lcm
+  lcmtypes/planner_request_t.lcm
 )
 
 add_custom_command(
