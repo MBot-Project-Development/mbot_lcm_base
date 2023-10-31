@@ -20,6 +20,30 @@ if(JAVA_FOUND)
   set(java_args JAVA_SOURCES java_sources)
 endif()
 
+set(LCM_FILES
+      lcmtypes/twist2D_t.lcm
+      lcmtypes/timestamp_t.lcm
+      lcmtypes/path2D_t.lcm
+      lcmtypes/pose2D_t.lcm
+      lcmtypes/mbot_slam_reset_t.lcm
+      lcmtypes/particles_t.lcm
+      lcmtypes/mbot_encoders_t.lcm
+      lcmtypes/occupancy_grid_t.lcm
+      lcmtypes/point3D_t.lcm
+      lcmtypes/joy_t.lcm
+      lcmtypes/mbot_imu_t.lcm
+      lcmtypes/mbot_motor_pwm_t.lcm
+      lcmtypes/pose3D_t.lcm
+      lcmtypes/mbot_motor_vel_t.lcm
+      lcmtypes/twist3D_t.lcm
+      lcmtypes/lidar_t.lcm
+      lcmtypes/mbot_message_received_t.lcm
+      lcmtypes/particle_t.lcm
+      lcmtypes/slam_status_t.lcm
+      lcmtypes/exploration_status_t.lcm
+      lcmtypes/planner_request_t.lcm
+)
+
 lcm_wrap_types(
   C_EXPORT mbot_lcm_msgs
   C_SOURCES c_sources
@@ -27,30 +51,12 @@ lcm_wrap_types(
   CPP_HEADERS cpp_headers
   ${python_args}
   ${java_args}
-  lcmtypes/twist2D_t.lcm
-  lcmtypes/timestamp_t.lcm
-  lcmtypes/path2D_t.lcm
-  lcmtypes/pose2D_t.lcm
-  lcmtypes/mbot_slam_reset_t.lcm
-  lcmtypes/particles_t.lcm
-  lcmtypes/mbot_encoders_t.lcm
-  lcmtypes/occupancy_grid_t.lcm
-  lcmtypes/point3D_t.lcm
-  lcmtypes/joy_t.lcm
-  lcmtypes/mbot_imu_t.lcm
-  lcmtypes/mbot_motor_pwm_t.lcm
-  lcmtypes/pose3D_t.lcm
-  lcmtypes/mbot_motor_vel_t.lcm
-  lcmtypes/twist3D_t.lcm
-  lcmtypes/lidar_t.lcm
-  lcmtypes/mbot_msg_received_t.lcm
-  lcmtypes/particle_t.lcm
-  lcmtypes/slam_status_t.lcm
+  ${LCM_FILES}
 )
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.h
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_CURRENT_SOURCE_DIR}/lcmtypes
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_CURRENT_SOURCE_DIR} ${LCM_FILES}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/lcm_serial_gen.py ${CMAKE_CURRENT_SOURCE_DIR}/lcmtypes/*.lcm
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Generating ${CMAKE_CURRENT_BINARY_DIR}/mbot_lcm_msgs_serial.c/.h"

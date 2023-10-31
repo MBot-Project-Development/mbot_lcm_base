@@ -1,4 +1,5 @@
 import os
+import sys
 import argparse
 import re
 from collections import defaultdict
@@ -119,18 +120,19 @@ def generate_serialize_deserialize_functions(struct_name):
     return deserialize + serialize
 
 
-def process_lcm_files(folder_path):
+def process_lcm_files(folder_path, ordered_lcm_files):
     """
     \brief Process LCM files in a folder, generate C structs and functions, and save them in header files.
     
     \param[in] folder_path The path to the folder containing LCM files.
+    \param[in] ordered_lcm_files List of LCM files in the order they should be processed.
 
     The function will create one header file and one C file for each unique package name found in the LCM files. The header
     files will be named {package_name}_serial.h and will contain the C structs and serialize/deserialize
     function prototypes for each LCM struct in the package. The C files will be named {package_name}_serial.c and will
     contain the serialize/deserialize function implementations.
     """
-    lcm_files = [f for f in os.listdir(folder_path) if f.endswith('.lcm')]
+    lcm_files = ordered_lcm_files   
 
     package_structs = defaultdict(list)
     package_types = defaultdict(list)
@@ -190,16 +192,14 @@ def process_lcm_files(folder_path):
         #     f.close()
 
 def main():
-    parser = argparse.ArgumentParser(description='Process LCM files and generate C structs and functions.')
-    parser.add_argument('folder_path', help='Path to the folder containing LCM files')
+    folder_path = sys.argv[1]
+    ordered_lcm_files = sys.argv[2:]
 
-    args = parser.parse_args()
-
-    if not os.path.isdir(args.folder_path):
-        print(f"Error: {args.folder_path} is not a valid directory")
+    if not os.path.isdir(folder_path):
+        print(f"Error: {folder_path} is not a valid directory")
         exit(1)
 
-    process_lcm_files(args.folder_path)
+    process_lcm_files(folder_path, ordered_lcm_files)  
 
 if __name__ == "__main__":
     main()
