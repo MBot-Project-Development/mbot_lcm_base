@@ -42,6 +42,8 @@ set(LCM_FILES
       lcmtypes/slam_status_t.lcm
       lcmtypes/exploration_status_t.lcm
       lcmtypes/planner_request_t.lcm
+      lcmtypes/mbot_apriltag_t.lcm
+      lcmtypes/mbot_apriltag_array_t.lcm
 )
 
 lcm_wrap_types(

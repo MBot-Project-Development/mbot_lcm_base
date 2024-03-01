@@ -17,6 +17,7 @@
 #define MBOT_IMU_CHANNEL "MBOT_IMU"
 #define MBOT_ENCODERS_CHANNEL "MBOT_ENCODERS"
 #define MBOT_ENCODERS_RESET_CHANNEL "MBOT_ENCODERS_RESET"
+#define MBOT_APRILTAG_ARRAY_CHANNEL "MBOT_APRILTAG_ARRAY"
 
 /////// serial channels //////
 enum message_topics{
@@ -31,7 +32,8 @@ enum message_topics{
     MBOT_MOTOR_VEL_CMD = 231,
     MBOT_MOTOR_VEL = 232,
     MBOT_MOTOR_PWM = 233,
-    MBOT_VEL = 234
+    MBOT_VEL = 234,
+    MBOT_APRILTAG_ARRAY = 235
 };
 
 #endif // LCM_CONFIG_H
